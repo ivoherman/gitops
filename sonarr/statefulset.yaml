@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "x-arr-chart.fullname" . }}
+  labels:
+    {{- include "x-arr-chart.labels" . | nindent 4 }}
+    app: {{ include "x-arr-chart.fullname" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  serviceName: {{ .Values.nameOverride }}
+  selector:
+    matchLabels:
+      {{- include "x-arr-chart.selectorLabels" . | nindent 6 }}
+      app: {{ include "x-arr-chart.fullname" . }}
+  template:
+    metadata:
+      labels:
+        {{- include "x-arr-chart.selectorLabels" . | nindent 8 }}
+        app: {{ include "x-arr-chart.fullname" . }}
+    spec:
+    {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+    {{- end }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: {{ .Chart.Name }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.image.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.probes.livenessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.probes.livenessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.probes.livenessProbe.periodSeconds }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: {{ .Values.probes.readinessProbe.initialDelaySeconds }}
+            timeoutSeconds: {{ .Values.probes.readinessProbe.timeoutSeconds }}
+            periodSeconds: {{ .Values.probes.readinessProbe.periodSeconds }}
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: {{ .Values.dataPath }}
+            - name: downloads
+              mountPath: /downloads
+          env:
+            - name: TZ
+              value: "{{ .Values.env.TZ }}"
+            - name: PGID
+              value: "{{ .Values.env.PGID }}"
+            - name: PUID
+              value: "{{ .Values.env.PUID }}"
+      volumes:
+        - name: config
+          persistentVolumeClaim:
+            claimName: {{ include "x-arr-chart.fullname" . }}
+        - name: data
+          nfs:
+            server: "{{ .Values.nfs.server }}"
+            path: "{{ .Values.nfs.path.data }}"
+        - name: downloads
+          nfs:
+            server: "{{ .Values.nfs.server }}"
+            path: "{{ .Values.nfs.path.downloads }}"
