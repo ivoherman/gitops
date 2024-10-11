@@ -41,7 +41,7 @@ spec:
             failureThreshold: 3
             httpGet:
               path: /robots.txt
-              port: 3000
+              port: 3001
               scheme: HTTP
             initialDelaySeconds: 10
             periodSeconds: 30
