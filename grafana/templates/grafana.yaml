@@ -34,7 +34,7 @@ spec:
           image: grafana/grafana:latest
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000
+            - containerPort: 3001
               name: http-grafana
               protocol: TCP
           readinessProbe:
